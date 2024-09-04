@@ -3,7 +3,7 @@
 #MAnually see transactions of new pairs GThUX1Atko4tqhN2NaiTazWSeFWMuiUvfFnyJyUghFMJ under spl transfer section
 
 from time import sleep
-import logging
+import logging, os
 
 import asyncio
 from typing import List, AsyncIterator, Tuple, Iterator
@@ -25,6 +25,9 @@ from solders.rpc.responses import RpcLogsResponse, SubscriptionResult, LogsNotif
 from solders.signature import Signature
 from solders.transaction_status import UiPartiallyDecodedInstruction, ParsedInstruction
 
+
+from google_sheets import write_to_google_sheets, big_last_row
+
 # Raydium Liquidity Pool V4
 RaydiumLPV4 = "675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8"
 URI = "https://api.mainnet-beta.solana.com"  # "https://api.devnet.solana.com" | "https://api.mainnet-beta.solana.com"
@@ -36,9 +39,16 @@ seen_signatures = set()
 
 
 # Init logging
-logging.basicConfig(filename='app.log', filemode='a', level=logging.DEBUG)
+logging.basicConfig(
+    filename='app.log',
+    filemode='a',
+    level=logging.DEBUG,
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
 # Writes responses from socket to messages.json
 # Writes responses from http req to  transactions.json
+
 
 async def main():
     """The client as an infinite asynchronous iterator:"""
@@ -104,11 +114,20 @@ async def process_messages(websocket: SolanaWsClientProtocol,
             logging.info(value.signature)
             logging.info(log)
             # Logging to messages.json
-            with open("messages.json", 'a', encoding='utf-8') as raw_messages:  
+            file_path = "messages.json"
+
+            # Check if the file exists
+            if os.path.exists(file_path):
+                print(f"The file '{file_path}' exists.")
+            else:
+                print(f"The file '{file_path}' does not exist.")
+
+            with open(file_path, 'a', encoding='utf-8') as raw_messages:  
                 raw_messages.write(f"signature: {value.signature} \n")
                 raw_messages.write(msg[0].to_json())
                 raw_messages.write("\n ########## \n")
             # End logging
+            # lets check if that file exists
             yield value.signature
 
 
@@ -137,11 +156,14 @@ def get_tokens(signature: Signature, RaydiumLPV4: Pubkey) -> None:
     # End logging
     instructions = get_instructions(transaction)
     filtred_instuctions = instructions_with_program_id(instructions, RaydiumLPV4)
-    logging.info(filtred_instuctions)
+    logging.info(f'filtred_instuctions : \n {filtred_instuctions=}')
     for instruction in filtred_instuctions:
         tokens = get_tokens_info(instruction)
         print_table(tokens)
         print(f"True, https://solscan.io/tx/{signature}")
+        msg =[str(o) for o in [tokens[0], tokens[2] , signature, "https://solscan.io/tx/"+str(signature)]]
+        write_to_google_sheets([msg], list_name='Radium')
+        # big_last_row(bold=False, font_size=10)
 
 
 
@@ -175,6 +197,7 @@ def get_tokens_info(
     # Start logging
     logging.info("find LP !!!")
     logging.info(f"\n Token0: {Token0}, \n Token1: {Token1}, \n Pair: {Pair}")
+    logging.debug(f"{accounts=}")
     # End logging
     return (Token0, Token1, Pair)
 
@@ -191,6 +214,8 @@ def print_table(tokens: Tuple[Pubkey, Pubkey, Pubkey]) -> None:
     print("|".rjust(18))
     for row in data:
         print("│".join(f" {str(row[col]).ljust(15)} " for col in header))
+    
+    
 
 
 if __name__ == "__main__":

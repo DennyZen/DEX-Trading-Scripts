@@ -55,7 +55,7 @@ class style():
     UNDERLINE = '\033[4m'
     RESET = '\033[0m'
 #DCAK8tuwzsNowVA6eSojLHhHSDQMyECuSbu7KovyvYbm
-wallet_address = "DCAK8tuwzsNowVA6eSojLHhHSDQMyECuSbu7KovyvYbm" #
+wallet_address = "A719nD9SkNrG2EQP6CLQFURVKcqfqrT6AJSN3MnR6HSB"# Dune solAlphas
 seen_signatures = set()
 WRAPPED_SOL_MINT = "So11111111111111111111111111111111111111112"
 Pool_raydium="675kPX9MHTjS2zt1qfr1NYHuzeLXfQM9H24wFSUt1Mp8"
